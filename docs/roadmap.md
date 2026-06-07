@@ -1,95 +1,33 @@
 # Roadmap
 
-## v0.1 — Core Local Chain
+## Completed release line
 
-Status: implemented foundation.
+| Version | Focus | Outcome |
+|---|---|---|
+| v0.1 | Core local chain | wallets, signed transactions, balances, mining, chain verification |
+| v0.2 | Fee engine | deterministic base/size/priority fee model |
+| v0.3 | Binary format | `.dtx`, `.dblk`, checksums, inspectors |
+| v0.4 | Storage | persistent local store, metadata, index, state export |
+| v0.5 | Localnet | loopback TCP nodes, peer status, block fetch, mempool gossip |
+| v0.6 | TUI | terminal dashboard snapshot |
+| v0.7 | Benchmarks | Criterion scaffolding and CLI report surface |
+| v0.8 | Local lab | spam/replay/invalid-input simulations bounded to local testing |
+| v0.9 | Documentation | protocol, fees, binary format, networking, threat model |
+| v1.0 | Portfolio release | full workspace, GUI, screenshots, examples, CI, release docs |
 
-- wallet creation;
-- signed transfers;
-- faucet for local testing;
-- block creation;
-- state transitions;
-- chain verification.
+## v1.1 candidates
 
-## v0.2 — Fee Engine
+- Replace file-backed storage with an embedded database backend behind a trait.
+- Add a live TUI event loop instead of a snapshot renderer.
+- Add GUI runtime screenshot capture script.
+- Add round-robin validator mode for easier local multi-node demos.
+- Add property tests for malformed binary frames and block roundtrips.
+- Add reproducible benchmark fixture generator.
 
-Status: implemented foundation.
+## Non-goals
 
-- deterministic required fee;
-- base fee;
-- size fee;
-- optional priority fee;
-- fee estimate command;
-- transaction rejection for insufficient max fee.
-
-## v0.3 — Binary Format
-
-Status: implemented foundation.
-
-- `.dtx` transaction files;
-- `.dblk` block files;
-- custom binary encoder/decoder;
-- checksums;
-- inspector commands.
-
-## v0.4 — Persistent Storage
-
-Status: current release.
-
-- file-backed persistent store;
-- atomic writes;
-- persisted state snapshot;
-- persisted genesis snapshot;
-- block files;
-- pending transaction files;
-- metadata manifest;
-- block index;
-- database statistics;
-- state export;
-- reindex command.
-
-## v0.5 — Local P2P Network
-
-Next target.
-
-- TCP listener;
-- peer config;
-- handshake frame;
-- transaction gossip;
-- block gossip;
-- height sync;
-- malformed frame rejection;
-- local two-node demo.
-
-## v0.6 — Terminal UI
-
-- live Ratatui dashboard;
-- blocks screen;
-- mempool screen;
-- fees screen;
-- peers screen;
-- logs screen.
-
-## v0.7 — Benchmarks
-
-- real Criterion benchmarks;
-- generated markdown report;
-- README benchmark table from real output only.
-
-## v0.8 — Local Adversarial Lab
-
-- spam simulation;
-- replay simulation;
-- invalid transaction simulation;
-- invalid block simulation;
-- oversized block simulation;
-- fork simulation.
-
-## v1.0 — Portfolio Release
-
-- tests pass;
-- screenshots added;
-- localnet demo works;
-- benchmark report committed;
-- threat model complete;
-- release tag created.
+- Public cryptocurrency launch.
+- Token sale or exchange listing.
+- Smart-contract VM.
+- Mainnet networking.
+- Attack tooling against third-party systems.

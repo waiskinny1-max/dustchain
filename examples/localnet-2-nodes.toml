@@ -1,0 +1,14 @@
+# Example local two-node setup.
+# Run each node with a separate --data-dir.
+
+[node_a]
+data_dir = ".node-a"
+host = "127.0.0.1"
+port = 3030
+peers = ["127.0.0.1:3031"]
+
+[node_b]
+data_dir = ".node-b"
+host = "127.0.0.1"
+port = 3031
+peers = ["127.0.0.1:3030"]

@@ -1,6 +1,6 @@
 [package]
 name = "dustchain"
-version = "0.4.0"
+version = "1.0.0"
 edition = "2021"
 publish = false
 
@@ -9,9 +9,11 @@ dust-core.workspace = true
 dust-mempool.workspace = true
 dust-store.workspace = true
 dust-wire.workspace = true
+dust-node.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+tokio.workspace = true
 tempfile.workspace = true
 
 [workspace]
@@ -25,6 +27,7 @@ members = [
     "crates/dust-node",
     "crates/dust-tui",
     "crates/dust-lab",
+    "crates/dust-gui",
     "crates/dust-cli",
 ]
 
@@ -54,6 +57,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tempfile = "3.12"
 criterion = "0.5"
 proptest = "1.5"
+eframe = { version = "0.29", default-features = true }
 
 dust-core = { path = "crates/dust-core" }
 dust-crypto = { path = "crates/dust-crypto" }
@@ -63,3 +67,4 @@ dust-mempool = { path = "crates/dust-mempool" }
 dust-node = { path = "crates/dust-node" }
 dust-tui = { path = "crates/dust-tui" }
 dust-lab = { path = "crates/dust-lab" }
+dust-gui = { path = "crates/dust-gui" }

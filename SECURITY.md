@@ -1,36 +1,38 @@
 # Security
 
-`dustchain` is an experimental local-first blockchain implementation.
+`dustchain` is an experimental local-first blockchain implementation. It is not audited and is not production-ready.
 
-Do not use it for real funds, real assets, or production consensus.
+## Do not use for
 
-## Supported security boundary
+- real funds;
+- public financial activity;
+- mainnet consensus;
+- custody;
+- exchange integration;
+- third-party network testing;
+- offensive security operations.
 
-Supported:
+## Local lab boundary
 
-- local testing;
-- malformed local file handling;
-- local mempool spam simulation;
-- local replay simulation;
-- local invalid transaction simulation;
-- local invalid block simulation.
+The lab commands simulate invalid, replayed, oversized, spam-like, and fork-like inputs against local test logic only. They must not be extended into tooling for scanning, flooding, exploiting, or disrupting third-party systems.
 
-Not supported:
+## Wallet material
 
-- public-network deployment;
-- third-party target testing;
-- real financial use;
-- wallet custody;
-- production validator operation.
+Wallet files are plaintext local development files. They are not suitable for production custody.
 
-## Reporting
+## Network defaults
 
-Open an issue with:
+Node commands are loopback-first. Non-loopback behavior should remain explicit and documented.
 
-- affected version;
-- reproduction steps;
-- input file or command;
+## Reporting issues
+
+Open a GitHub issue with:
+
+- affected command;
+- operating system;
+- steps to reproduce;
 - expected behavior;
-- observed behavior.
+- actual behavior;
+- relevant logs.
 
-Do not include exploit instructions against third-party networks.
+Do not include private keys or sensitive wallet files.

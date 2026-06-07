@@ -1,10 +1,10 @@
 # Protocol
 
-`dustchain` is an account-based local blockchain prototype.
+`dustchain` is a local-first account-based payment chain experiment.
 
-## Account
+## Account model
 
-Each account stores:
+Each account has:
 
 ```text
 address
@@ -12,11 +12,11 @@ balance
 nonce
 ```
 
-The nonce is part of transaction validation and prevents replay inside the same chain.
+The nonce prevents replay of already-applied transactions.
 
-## Transaction
+## Transaction model
 
-A transfer contains:
+Each transfer includes:
 
 ```text
 version
@@ -28,28 +28,46 @@ nonce
 max_fee
 priority_fee
 memo
-public_key
 signature
 ```
 
-The signature signs the transaction payload without the signature fields. The public key must hash to the sender address.
+A transaction is accepted only if:
 
-## Block
+1. the signature verifies;
+2. the public key maps to the sender address;
+3. the chain ID matches local config;
+4. the nonce equals the sender account nonce;
+5. the amount is greater than zero;
+6. the sender can pay amount plus fee;
+7. the memo is within policy;
+8. the encoded transaction size is within policy;
+9. the max fee covers the required protocol fee.
 
-A block contains:
+## Block model
+
+A block contains a header and a transaction body. The header commits to:
 
 ```text
-header
-transactions
+version
+chain_id
+height
+previous block hash
+state root
+transaction root
+timestamp
+producer
+difficulty/slot
+nonce/round
 ```
 
-The header stores chain ID, height, previous hash, state root, transaction root, timestamp, producer, and local consensus fields.
+## Local consensus
 
-## Consensus
+The current implementation is a development block-production mode suitable for local testing. It is not a mainnet consensus protocol.
 
-v0.1 uses local block production. Dev proof-of-work and round-robin validator mode are reserved for later versions.
+## Fee model
 
+```text
+fee = base_fee + size_fee + optional_priority_fee
+```
 
-## v0.4 persistence note
-
-The protocol objects are persisted in an inspectable local store. Blocks remain `.dblk` files and pending transactions remain `.dtx` files. The store now maintains a metadata manifest and a block index so the local chain can be inspected without parsing every file manually.
+Transactions are never free. The minimum fee exists to avoid totally free spam, while compact encoding keeps ordinary transfers cheap.

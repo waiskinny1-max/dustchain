@@ -1,0 +1,26 @@
+# Four local development nodes.
+# This is a controlled localnet example, not a public deployment config.
+
+[[nodes]]
+data_dir = ".node-a"
+host = "127.0.0.1"
+port = 3030
+peers = ["127.0.0.1:3031", "127.0.0.1:3032"]
+
+[[nodes]]
+data_dir = ".node-b"
+host = "127.0.0.1"
+port = 3031
+peers = ["127.0.0.1:3030", "127.0.0.1:3033"]
+
+[[nodes]]
+data_dir = ".node-c"
+host = "127.0.0.1"
+port = 3032
+peers = ["127.0.0.1:3030", "127.0.0.1:3033"]
+
+[[nodes]]
+data_dir = ".node-d"
+host = "127.0.0.1"
+port = 3033
+peers = ["127.0.0.1:3031", "127.0.0.1:3032"]

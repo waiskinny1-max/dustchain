@@ -1,31 +1,26 @@
 # Benchmarks
 
-Benchmark numbers must be generated from the local machine. Do not fake benchmark tables.
+Benchmarks are part of the low-fee argument. They must be generated, not invented.
 
-CLI benchmark commands:
-
-```bash
-dust bench
-dust bench --markdown > BENCHMARKS.md
-```
-
-Storage-related checks added in v0.4:
+## Commands
 
 ```bash
-dust chain db-stats --verbose
-dust chain reindex
+cargo bench
+cargo run -p dust-cli -- bench
+cargo run -p dust-cli -- bench --markdown
 ```
 
-The storage stats are not performance benchmarks. They are footprint measurements showing the byte cost of blocks, pending transactions, wallets, snapshots, and metadata.
+## Required metrics
 
-Recommended release table fields for v0.7:
+- average transaction size;
+- minimum fee;
+- average fee;
+- transactions per 1MB block;
+- block validation time;
+- state update time;
+- mempool insertion time;
+- storage cost per transaction batch.
 
-| Metric | Source |
-|---|---|
-| Average tx size | `dust bench --markdown` |
-| Minimum transfer fee | `dust bench --markdown` |
-| Txs per 1MB block | `dust bench --markdown` |
-| Block validation time | Criterion benchmark |
-| State update time | Criterion benchmark |
-| Mempool insert time | Criterion benchmark |
-| DB size per 10k txs | Storage benchmark |
+## Reporting rule
+
+Do not commit synthetic benchmark numbers. If results are not produced by a local run, mark them as pending.

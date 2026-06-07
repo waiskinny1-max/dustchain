@@ -1,31 +1,40 @@
 # Implementation notes
 
-This repository artifact was generated from the supplied `dustchain` specification.
+This repository is intended to be built locally with Rust stable.
 
-## What is implemented
-
-- Rust workspace with dedicated crates.
-- Core account, transaction, fee, state, block, chain, validation, and Merkle modules.
-- Ed25519 wallet key generation and signing helper crate.
-- Custom `dust-wire` binary payloads and framed `.dtx` / `.dblk` files.
-- CLI command surface for init, wallets, faucet, transfer, mining, balances, chain inspection, file inspection, mempool, benchmark scaffold, node stub, TUI snapshot, and local lab reports.
-- File-backed local storage for the first implementation.
-- Local-only lab simulation report modules.
-- Documentation, examples, tests, CI, benches, and release hygiene files.
-
-## Important limitation
-
-I could not compile or run `cargo test` in this sandbox because `rustc` / `cargo` are not installed here. The code is written as a coherent Rust workspace, but you should run the following locally immediately after unzip:
+## Required local checks
 
 ```bash
 cargo fmt --all
 cargo check --workspace
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
+cargo bench
 ```
 
-Any compiler issue after that should be treated as a normal first-pass patch, not as a tested release.
+## GUI dependencies on Linux
 
-## Design decision
+Native GUI builds may require common desktop/X11 packages. On Ubuntu GitHub runners the CI installs:
 
-The fee policy keeps the first 1024 bytes inside the base fee. That resolves the spec tension between `base_fee + size_fee` and the desired demo result where a normal transfer pays only `1 dust`.
+```bash
+sudo apt-get install -y \
+  libgtk-3-dev \
+  libx11-dev \
+  libxcb1-dev \
+  libxcb-render0-dev \
+  libxcb-shape0-dev \
+  libxcb-xfixes0-dev \
+  libxkbcommon-dev
+```
+
+## Benchmark policy
+
+Do not commit invented benchmark numbers. Run the benchmark suite locally and paste the real output into `BENCHMARKS.md` or `docs/benchmarks.md`.
+
+## GUI screenshot policy
+
+The checked-in PNGs under `assets/screenshots/` are showcase captures. Replace them with runtime screenshots after materially changing `dust-gui`.
+
+## Security boundary
+
+The lab and network code are for local protocol testing only. Keep defaults on loopback and do not add third-party scanning or attack behavior.

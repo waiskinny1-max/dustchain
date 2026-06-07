@@ -1,20 +1,31 @@
 # Contributing
 
-Keep the project boring in the right places.
+This repo is a protocol-engineering project. Keep changes measured, testable, and non-promotional.
 
-Required before a pull request:
+## Before opening a pull request
 
 ```bash
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all
+cargo check --workspace
 cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-Project rules:
+## Rules
 
-- no token hype;
-- no fake benchmark numbers;
-- no production-security claims;
-- no JSON block or transaction format;
-- no public-network adversarial tooling;
-- errors must explain the exact rejection reason.
+- Do not add investment language.
+- Do not fake benchmark numbers.
+- Do not add third-party attack functionality.
+- Keep lab simulations local-only.
+- Keep GUI copy specific and minimal.
+- Prefer precise errors over generic failures.
+
+## Good contributions
+
+- smaller binary encoding;
+- better validation errors;
+- malformed input tests;
+- reproducible benchmark fixtures;
+- storage abstraction;
+- GUI accessibility fixes;
+- clearer protocol documentation.
