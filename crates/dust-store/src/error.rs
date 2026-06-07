@@ -19,4 +19,7 @@ pub enum StoreError {
 
     #[error("store parse error: {0}")]
     Parse(String),
+
+    #[error("store layout error: {0}")]
+    Layout(String),
 }

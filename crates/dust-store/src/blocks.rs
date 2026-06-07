@@ -1,5 +1,5 @@
-//! Focused storage helpers for `blocks`.
+//! Block persistence boundary.
 //!
-//! The first implementation keeps these modules intentionally thin and routes
-//! concrete file operations through `DustStore`. The split is here to keep the
-//! workspace structure stable as the storage layer moves toward `redb` in v0.4.
+//! v0.4 stores blocks as checksum-protected `.dblk` files and maintains a
+//! tab-separated block index at `.dustchain/metadata/block-index.tsv`.
+//! This keeps the storage layer inspectable before any future embedded-DB move.

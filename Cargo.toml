@@ -1,6 +1,6 @@
 [package]
 name = "dustchain"
-version = "0.1.0"
+version = "0.4.0"
 edition = "2021"
 publish = false
 
@@ -12,6 +12,7 @@ dust-wire.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+tempfile.workspace = true
 
 [workspace]
 resolver = "2"

@@ -2,78 +2,69 @@
 
 Low fees. Compact blocks. Terminal-first.
 
-`dustchain` is an experimental low-fee blockchain implementation built in Rust. It focuses on compact binary transactions, deterministic micro-fees, local validation, mempool discipline, binary block inspection, and a terminal-native operator experience.
+`dustchain` is an experimental low-fee blockchain implementation built in Rust. It focuses on compact binary transactions, predictable micro-fees, local-first chain operation, persistent block/state storage, terminal inspection, and safe local adversarial simulations.
 
-It is not a cryptocurrency launch. It is not investment software. It is a systems/security engineering repository.
+It is a protocol engineering portfolio project. It is not a production cryptocurrency, investment product, or public network.
 
 ## Why
 
-Low fees are not created by cheap mining. They come from protocol decisions:
+Low blockchain fees do not come from “cheap mining.” They come from engineering choices:
 
 - compact transaction encoding;
-- deterministic fee policy;
-- small execution surface;
-- strict transaction and block size limits;
-- nonce-based replay protection;
-- mempool eviction rules;
-- benchmarked transaction cost;
-- local adversarial tests that keep spam from being free.
+- deterministic fee rules;
+- limited execution complexity;
+- bounded transaction and block sizes;
+- disciplined mempool policy;
+- visible storage and benchmark costs.
 
-## Current implementation
+The design target is simple: normal transfers should remain small, measurable, and cheap without making spam free.
 
-This first implementation lays down the v0.1-v0.3 foundation:
+## Current release
 
-| Area | Status |
-|---|---|
-| Rust workspace | Implemented |
-| Core account model | Implemented |
-| Balances and nonces | Implemented |
-| Fee engine | Implemented |
-| Ed25519 wallet keys | Implemented |
-| Signed transfer transactions | Implemented |
-| Local block production | Implemented |
-| Binary `.dtx` transaction files | Implemented |
-| Binary `.dblk` block files | Implemented |
-| CLI inspection | Implemented |
-| File-backed local storage | Implemented |
-| Mempool policy module | Implemented |
-| Local lab report module | Implemented |
-| TUI skeleton | Implemented |
-| Local P2P | Stubbed for v0.5 |
-| Benchmarks | CLI micro-bench scaffold; Criterion files included |
+This repo is now at **v0.4.0-storage**.
+
+Implemented foundation:
+
+- account state with balances and nonces;
+- Ed25519-style signed transfers;
+- deterministic base fee + size fee + priority fee;
+- binary `.dtx` transaction files;
+- binary `.dblk` block files;
+- CLI wallet, transfer, mining, balance, chain verification, file inspection;
+- file-backed persistent local store;
+- metadata manifest and block index;
+- atomic state/config/wallet/block writes;
+- DB stats and state export commands;
+- safe local lab stubs.
 
 ## Quick start
 
 ```bash
-cargo build --release -p dust-cli
-alias dust="./target/release/dust"
-
-dust init
-dust wallet new alice
-dust wallet new bob
-dust faucet alice 1000
-dust tx send alice bob 100
-dust mine
-dust balance alice
-dust balance bob
-dust chain verify
+cargo run -p dust-cli -- init
+cargo run -p dust-cli -- wallet new alice
+cargo run -p dust-cli -- wallet new bob
+cargo run -p dust-cli -- faucet alice 1000
+cargo run -p dust-cli -- tx send alice bob 100
+cargo run -p dust-cli -- mine
+cargo run -p dust-cli -- balance alice
+cargo run -p dust-cli -- balance bob
+cargo run -p dust-cli -- chain verify
 ```
 
-Expected shape:
+Expected economic result:
 
 ```text
 alice balance: 899 dust
 bob balance: 100 dust
+fee paid: 1 dust
 chain status: valid
 ```
 
-The one-dust fee is intentional: the base fee includes the first kilobyte of a normal transfer. Larger transactions pay a marginal size fee.
-
-## Fee model
+## Low-fee model
 
 ```text
-required_fee = base_fee + marginal_size_fee
-paid_fee     = required_fee + priority_fee
+required_fee = base_fee + size_fee
+paid_fee = required_fee + priority_fee
 ```
 
 Default policy:
@@ -84,95 +75,101 @@ base_fee = 1
 fee_per_kb = 1
 included_bytes = 1024
 max_priority_fee = 1000
-max_tx_size_bytes = 2048
-max_memo_bytes = 128
 ```
 
-A normal transfer should remain cheap. Oversized or spam-like traffic is still priced and bounded.
+Normal transfers fit under the included byte window, so the minimum transfer fee remains `1 dust`. Larger transactions pay a deterministic size surcharge.
 
-## CLI
+## Storage layout
 
-```bash
-dust init
-dust wallet new alice
-dust wallet list
-dust wallet show alice
-dust faucet alice 1000
-dust tx send alice bob 100 --priority-fee 0
-dust tx inspect .dustchain/mempool/<hash>.dtx
-dust mine
-dust chain height
-dust chain inspect 1
-dust chain verify
-dust chain db-stats
-dust balance alice
-dust fee estimate --memo "hello"
-dust mempool list
-dust mempool clear
-dust inspect block .dustchain/blocks/00000001.dblk
-dust inspect tx .dustchain/mempool/<hash>.dtx
-dust bench
-dust tui
-dust lab spam --txs 50000
+After `dust init`, the local store is created under `.dustchain/`:
+
+```text
+.dustchain/
+├── config.toml
+├── genesis.snapshot
+├── state.snapshot
+├── blocks/
+│   └── 00000001.dblk
+├── mempool/
+│   └── <tx>.dtx
+├── metadata/
+│   ├── manifest.txt
+│   └── block-index.tsv
+└── wallets/
+    └── alice.wallet
 ```
 
-## Binary format
+v0.4 adds:
 
-Blocks and transactions are not stored as JSON.
+- atomic file writes;
+- persistent metadata manifest;
+- block index regeneration;
+- richer storage statistics;
+- state export.
 
-| File | Extension | Magic |
-|---|---:|---:|
-| Signed transaction | `.dtx` | `DUSTTX` |
-| Block | `.dblk` | `DUSTBLK` |
-
-Both formats use fixed magic bytes, protocol version bytes, length-prefixed payloads, and BLAKE3 checksums. The inspector rejects malformed lengths and bad checksums instead of panicking.
-
-## Local lab
-
-The lab module is local-only. It does not target public networks and does not contain offensive third-party attack tooling.
+Useful commands:
 
 ```bash
-dust lab spam --txs 50000
-dust lab replay
-dust lab invalid-tx
-dust lab invalid-block
-dust lab oversized-block
-dust lab fork
+cargo run -p dust-cli -- chain db-stats --verbose
+cargo run -p dust-cli -- chain reindex
+cargo run -p dust-cli -- chain export-state
+cargo run -p dust-cli -- chain export-state --output state.txt
+```
+
+## Binary inspection
+
+```bash
+cargo run -p dust-cli -- inspect tx .dustchain/mempool/<tx>.dtx
+cargo run -p dust-cli -- inspect block .dustchain/blocks/00000001.dblk
+```
+
+Example block output:
+
+```text
+Block File: .dustchain/blocks/00000001.dblk
+Magic: DUSTBLK
+Version: 1
+Height: 1
+Transactions: 1
+Checksum: valid
 ```
 
 ## Benchmarks
 
-The CLI benchmark command reports measured local values from the current process. Do not copy placeholder numbers into the README. Run:
+Run:
 
 ```bash
-dust bench
-dust bench --markdown > BENCHMARKS.md
+cargo run -p dust-cli -- bench
+cargo run -p dust-cli -- bench --markdown > BENCHMARKS.md
 ```
 
-## Architecture
+Do not commit fake benchmark numbers. Generate them from your machine and paste the real output.
 
-```text
-dustchain/
-├── crates/
-│   ├── dust-core      # accounts, state, txs, blocks, validation, fees
-│   ├── dust-crypto    # Ed25519 keys, signatures, addresses
-│   ├── dust-wire      # custom binary encoding and inspection
-│   ├── dust-store     # local file-backed node state
-│   ├── dust-mempool   # policy, ordering, eviction
-│   ├── dust-node      # node/networking boundary for v0.5
-│   ├── dust-tui       # terminal dashboard skeleton
-│   ├── dust-lab       # local adversarial simulations
-│   └── dust-cli       # `dust` command
-├── docs/
-├── examples/
-├── tests/
-└── benches/
+## Local lab
+
+The lab commands are local-only and do not target third-party systems:
+
+```bash
+cargo run -p dust-cli -- lab spam --txs 50000
+cargo run -p dust-cli -- lab replay
+cargo run -p dust-cli -- lab invalid-tx
+cargo run -p dust-cli -- lab invalid-block
+cargo run -p dust-cli -- lab oversized-block
+cargo run -p dust-cli -- lab fork
 ```
+
+## Roadmap
+
+- v0.1 core chain
+- v0.2 fee engine
+- v0.3 binary format
+- v0.4 persistent storage
+- v0.5 local P2P networking
+- v0.6 terminal UI
+- v0.7 benchmark suite
+- v0.8 local adversarial lab
+- v1.0 portfolio release
 
 ## Security
 
-`dustchain` is experimental. It has not been audited. It should not be used with real funds, real assets, or public-network security assumptions.
-
-## License
-
-MIT.
+This is not production-ready. It has not been externally audited. Do not use it for real funds, public consensus, or production security decisions.

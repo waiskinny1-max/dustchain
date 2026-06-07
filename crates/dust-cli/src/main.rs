@@ -3,7 +3,7 @@ mod output;
 
 use std::path::PathBuf;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use dust_core::{Address, Hash, SignedTransaction, Transaction};
 use dust_crypto::{sign, verify_signed_transaction};
@@ -65,7 +65,9 @@ enum ChainCommand {
     Height,
     Verify,
     Inspect { height: u64 },
-    DbStats,
+    DbStats { #[arg(long)] verbose: bool },
+    Reindex,
+    ExportState { #[arg(long)] output: Option<PathBuf> },
 }
 
 #[derive(Subcommand, Debug)]
@@ -122,6 +124,7 @@ async fn main() -> Result<()> {
             store.init()?;
             println!("initialized dustchain store");
             println!("data_dir: {}", store.root().display());
+            println!("metadata: metadata/manifest.txt");
         }
         Command::Wallet { command } => wallet_command(&store, command)?,
         Command::Faucet { wallet, amount } => faucet(&store, &wallet, amount)?,
@@ -237,8 +240,10 @@ fn mine(store: &DustStore) -> Result<()> {
     println!("block mined");
     println!("height: {}", block.header.height);
     println!("hash: {}", block.header_hash());
+    println!("state_root: {}", block.header.state_root);
     println!("txs: {}", block.transactions.len());
     println!("file: {}", path.display());
+    println!("index: metadata/block-index.tsv");
     Ok(())
 }
 
@@ -264,9 +269,24 @@ fn chain_command(store: &DustStore, command: ChainCommand) -> Result<()> {
             println!("state_root: {}", block.header.state_root);
             println!("txs: {}", block.transactions.len());
         }
-        ChainCommand::DbStats => {
+        ChainCommand::DbStats { verbose } => {
             println!("data_dir: {}", store.root().display());
-            println!("size_bytes: {}", store.db_size_bytes()?);
+            print!("{}", store.db_stats()?.render(verbose));
+        }
+        ChainCommand::Reindex => {
+            let entries = store.rebuild_index()?;
+            println!("block index rebuilt");
+            println!("indexed_blocks: {}", entries.len());
+        }
+        ChainCommand::ExportState { output } => {
+            let text = store.export_state_text()?;
+            if let Some(path) = output {
+                std::fs::write(&path, text)?;
+                println!("state exported");
+                println!("file: {}", path.display());
+            } else {
+                print!("{}", text);
+            }
         }
     }
     Ok(())

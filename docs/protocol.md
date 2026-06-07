@@ -48,3 +48,8 @@ The header stores chain ID, height, previous hash, state root, transaction root,
 ## Consensus
 
 v0.1 uses local block production. Dev proof-of-work and round-robin validator mode are reserved for later versions.
+
+
+## v0.4 persistence note
+
+The protocol objects are persisted in an inspectable local store. Blocks remain `.dblk` files and pending transactions remain `.dtx` files. The store now maintains a metadata manifest and a block index so the local chain can be inspected without parsing every file manually.

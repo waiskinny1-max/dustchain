@@ -1,8 +1,10 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use dust_core::{Chain, FeePolicy};
 
-fn bench_block_validation(c: &mut Criterion) {
-    c.bench_function("block_validation", |b| b.iter(|| 1 + 1));
+fn bench_chain_height_read(c: &mut Criterion) {
+    let chain = Chain::new("dust-local", FeePolicy::default());
+    c.bench_function("chain_height_read", |b| b.iter(|| black_box(chain.height())));
 }
 
-criterion_group!(benches, bench_block_validation);
+criterion_group!(benches, bench_chain_height_read);
 criterion_main!(benches);
