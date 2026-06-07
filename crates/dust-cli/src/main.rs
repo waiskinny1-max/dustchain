@@ -3,7 +3,7 @@ mod output;
 
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use dust_core::{Address, Hash, SignedTransaction, Transaction};
 use dust_crypto::{sign, verify_signed_transaction};
@@ -35,7 +35,9 @@ enum Command {
     Inspect { #[command(subcommand)] command: InspectCommand },
     Bench { #[arg(long)] markdown: bool },
     Node { #[command(subcommand)] command: NodeCommand },
+    Peer { #[command(subcommand)] command: PeerCommand },
     Tui,
+    Gui,
     Lab { #[command(subcommand)] command: LabCommand },
 }
 
@@ -101,7 +103,26 @@ enum NodeCommand {
         host: String,
         #[arg(long, default_value_t = 3030)]
         port: u16,
+        #[arg(long = "peer")]
+        peers: Vec<String>,
+        #[arg(long)]
+        allow_non_loopback: bool,
     },
+    Status {
+        #[arg(long, default_value = "127.0.0.1")]
+        host: String,
+        #[arg(long, default_value_t = 3030)]
+        port: u16,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum PeerCommand {
+    Add { address: String },
+    List,
+    Probe { address: Option<String> },
+    FetchBlock { peer: String, height: u64, #[arg(long)] output: Option<PathBuf> },
+    GossipMempool { peer: String },
 }
 
 #[derive(Subcommand, Debug)]
@@ -137,7 +158,9 @@ async fn main() -> Result<()> {
         Command::Inspect { command } => inspect_command(command)?,
         Command::Bench { markdown } => bench(&store, markdown)?,
         Command::Node { command } => node_command(&store, command).await?,
+        Command::Peer { command } => peer_command(&store, command).await?,
         Command::Tui => print!("{}", dust_tui::run_once(store.root())?),
+        Command::Gui => dust_gui::run_gui(Some(store.root().to_path_buf()))?,
         Command::Lab { command } => lab_command(command),
     }
 
@@ -412,17 +435,152 @@ fn bench(store: &DustStore, markdown: bool) -> Result<()> {
 
 async fn node_command(store: &DustStore, command: NodeCommand) -> Result<()> {
     match command {
-        NodeCommand::Start { host, port } => {
-            let node = dust_node::Node::new(dust_node::NodeConfig { host, port, data_dir: store.root().to_path_buf() });
-            let status = node.start_local_stub().await?;
-            println!("node started in local stub mode");
+        NodeCommand::Start { host, port, peers, allow_non_loopback } => {
+            let mut configured_peers = read_peers(store)?;
+            configured_peers.extend(peers);
+            configured_peers.sort();
+            configured_peers.dedup();
+
+            let mut config = dust_node::NodeConfig { host, port, data_dir: store.root().to_path_buf(), ..dust_node::NodeConfig::default() };
+            config.allow_non_loopback = allow_non_loopback;
+            let node = dust_node::Node::new(config);
+            let status = node.local_status(configured_peers.len()).await?;
+            println!("node starting in local P2P mode");
             println!("listening_on: {}", status.listening_on);
             println!("height: {}", status.height);
+            println!("tip_hash: {}", status.tip_hash);
+            println!("mempool_txs: {}", status.mempool_txs);
+            println!("configured_peers: {}", status.configured_peers);
+            println!("local_only_default: true");
+            node.start_localnet(configured_peers).await?;
+        }
+        NodeCommand::Status { host, port } => {
+            let config = dust_node::NodeConfig { host, port, data_dir: store.root().to_path_buf(), ..dust_node::NodeConfig::default() };
+            let node = dust_node::Node::new(config);
+            let status = node.local_status(read_peers(store)?.len()).await?;
+            println!("listening_on: {}", status.listening_on);
+            println!("height: {}", status.height);
+            println!("tip_hash: {}", status.tip_hash);
             println!("mempool_txs: {}", status.mempool_txs);
             println!("p2p_enabled: {}", status.p2p_enabled);
+            println!("configured_peers: {}", status.configured_peers);
         }
     }
     Ok(())
+}
+
+async fn peer_command(store: &DustStore, command: PeerCommand) -> Result<()> {
+    match command {
+        PeerCommand::Add { address } => {
+            let mut peers = read_peers(store)?;
+            if !peers.contains(&address) {
+                peers.push(address.clone());
+                peers.sort();
+                write_peers(store, &peers)?;
+            }
+            println!("peer saved");
+            println!("address: {}", address);
+            println!("file: {}", peers_path(store).display());
+        }
+        PeerCommand::List => {
+            let peers = read_peers(store)?;
+            if peers.is_empty() {
+                println!("no peers configured");
+            } else {
+                for peer in peers {
+                    println!("{}", peer);
+                }
+            }
+        }
+        PeerCommand::Probe { address } => {
+            let peers = if let Some(address) = address { vec![address] } else { read_peers(store)? };
+            let client = default_client();
+            if peers.is_empty() {
+                println!("no peers to probe");
+            }
+            for peer in peers {
+                match client.status(&peer).await {
+                    Ok(status) => {
+                        println!("peer: {}", peer);
+                        println!("chain_id: {}", status.chain_id);
+                        println!("height: {}", status.height);
+                        println!("tip_hash: {}", status.tip_hash);
+                        println!("mempool_txs: {}", status.mempool_txs);
+                    }
+                    Err(err) => {
+                        println!("peer: {}", peer);
+                        println!("status: unreachable");
+                        println!("error: {}", err);
+                    }
+                }
+            }
+        }
+        PeerCommand::FetchBlock { peer, height, output } => {
+            let client = default_client();
+            match client.fetch_block(&peer, height).await? {
+                Some(bytes) => {
+                    let path = output.unwrap_or_else(|| store.root().join("synced").join(format!("peer-{height:08}.dblk")));
+                    if let Some(parent) = path.parent() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                    std::fs::write(&path, bytes)?;
+                    println!("block fetched");
+                    println!("peer: {}", peer);
+                    println!("height: {}", height);
+                    println!("file: {}", path.display());
+                    println!("note: fetched block was not appended to the chain; inspect and verify before importing");
+                }
+                None => {
+                    println!("block not found on peer");
+                    println!("peer: {}", peer);
+                    println!("height: {}", height);
+                }
+            }
+        }
+        PeerCommand::GossipMempool { peer } => {
+            let client = default_client();
+            let report = dust_node::gossip_mempool_once(store, &client, &peer).await?;
+            print!("{}", report.render());
+        }
+    }
+    Ok(())
+}
+
+fn peers_path(store: &DustStore) -> PathBuf {
+    store.root().join("peers.txt")
+}
+
+fn read_peers(store: &DustStore) -> Result<Vec<String>> {
+    let path = peers_path(store);
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let text = std::fs::read_to_string(path)?;
+    let mut peers = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    peers.sort();
+    peers.dedup();
+    Ok(peers)
+}
+
+fn write_peers(store: &DustStore, peers: &[String]) -> Result<()> {
+    std::fs::create_dir_all(store.root())?;
+    let mut text = String::from("# dustchain local peers; use loopback addresses by default\n");
+    for peer in peers {
+        text.push_str(peer);
+        text.push('\n');
+    }
+    std::fs::write(peers_path(store), text)?;
+    Ok(())
+}
+
+fn default_client() -> dust_node::LocalClient {
+    let cfg = dust_node::NodeConfig::default();
+    dust_node::LocalClient::new(cfg.max_frame_bytes, cfg.connect_timeout_ms)
 }
 
 fn lab_command(command: LabCommand) {
